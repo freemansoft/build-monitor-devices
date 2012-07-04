@@ -1,0 +1,7 @@
+rainboduino_v1_0_7 has firmware to support sending lighting commands to a SeeedStudio (Seeed Studio) 
+4x4x4 LED cube whose master controller is the Rainbowduino Arduino clone.  
+This firmware was submitted to seed studio but never published.  
+
+rgb_pwm_serial is Arduino firmware that supports several different lighting configurations originally intended to act as build notification lights.
+This could actually be used for anything.  It supports two RGB lights using Arduino Uno integrated PWM, 4 RGB lights using the JeeNodes port expander and 32 lights using a Sparkfun addressable led strip.
+Different commands speak to different devices so no software changes are required.
