@@ -46,16 +46,57 @@ int servoSpeedPerStep = 4;  // in degrees
 // time between steps
 int servoStepInterval = 30; // in milliseconds 
 
-// when to turn off the bell 0==bell is already off
-volatile unsigned long bellEndTime = 0;
+// bell patterns are orthogonal to teh bell End Time.  < 0 means no pattern
+volatile int bellPattern = 0;             // active bell pattern
+volatile int  bellCurrentState = 0;        // Current Position in the state array
+volatile unsigned long bellLastChangeTime; // the 'time' of the last state transition - saves the millis() value
 
+/*================================================================================
+ *
+ * bell pattern buffer
+ * programming pattern lifted from http://arduino.cc/playground/Code/MultiBlink
+ *
+ *================================================================================*/
+
+typedef struct
+{
+  boolean  isRinging;          // digital value for this state to be active (Ring/Silent)
+  unsigned long activeTime;    // time to stay active in this state stay in milliseconds 
+} stateDefinition;
+
+// the number of pattern steps in every bell pattern 
+const int MAX_RING_STATES = 4;
+typedef struct
+{
+  stateDefinition state[MAX_RING_STATES];    // can pick other numbers of slots
+} ringerTemplate;
+
+const int NUM_BELL_PATTERNS = 6;
+ringerTemplate ringPatterns[] =
+{
+    //  state0 state1 state2 state3 
+  { /* no variable before stateDefinition*/ {{false, 10000}, {false, 10000}, {false, 10000}, {false, 10000}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true, 10000},  {true, 10000},  {true, 10000},  {true, 10000}}   /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true, 300},  {false, 300}, {false, 300}, {false, 300}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true, 200},  {false, 100}, {true, 200},  {false, 800}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true, 300},  {false, 400}, {true, 150},  {false, 400}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true, 100},  {false, 100}, {true, 100},  {false, 800}}  /* no variable after stateDefinition*/ },
+};
+
+/*================================================================================
+ *
+ * Start the real code
+ *
+ *================================================================================*/
 // The setup() method runs once, when the sketch starts
-
 void setup()   {                
   // initialize the digital pin as an output:
   Serial.begin(19200);
   pinMode(PIN_BELL,OUTPUT);
   bell_silence();
+  bellPattern = 0;             // active bell pattern
+  bellCurrentState = 0;        // Current Position in the state array
+  bellLastChangeTime = millis();
   pinMode(PIN_LED_GREEN, OUTPUT);
   pinMode(PIN_LED_RED, OUTPUT);
   led_off();
@@ -77,6 +118,9 @@ void setup()   {
 
   delay(200);
   servo_10_demo(1);
+  //bell_ring_pattern(3);
+  
+
 }
 
 // main loop that runs as long as Arduino has power
@@ -114,19 +158,25 @@ void loop()
  *=============================================*/
 
 // this should move to the interrupt handler like the servo code
-void bell_ring(int bellTimeMSec){
-  unsigned long now = millis();
-  bellEndTime = now+(long)bellTimeMSec;
-  if (bellEndTime < now){
-    // timer rollover -- will just bing once and stop immediately
-  }
+void bell_ring(){
   digitalWrite(PIN_BELL,HIGH);          // ring bell
 }
 
 // convenience for command
 void bell_silence(){
-  bellEndTime = 0;
   digitalWrite(PIN_BELL,LOW);          // silence bell
+}
+
+// 0 is the all off pattern.  1 is the all on pattern
+void bell_ring_pattern(int patternNumber){
+    bellLastChangeTime = millis();
+    bellCurrentState=0;
+    if (ringPatterns[patternNumber].state[bellCurrentState].isRinging){
+      bell_ring();
+    } else {
+      bell_silence();
+    }
+    bellPattern = patternNumber;
 }
 
 void led_off(){
@@ -178,15 +228,19 @@ void process_servos_and_bell(){
   check_bell();
 }
 
+// checks the bell pattern
 void check_bell(){
-  if (bellEndTime != 0){
-    if (bellEndTime < millis()){
-      bell_silence();
+  if (bellPattern >= 0){ // quick range check
+    if (millis() >= bellLastChangeTime + ringPatterns[bellPattern].state[bellCurrentState].activeTime){
+      // calculate next state with rollover/repeat
+      bellCurrentState = (bellCurrentState+1) % MAX_RING_STATES;
+      bellLastChangeTime = millis();
+      if (ringPatterns[bellPattern].state[bellCurrentState].isRinging){
+        bell_ring();
+      } else {
+        bell_silence();
+      }
     }
-  } 
-  else {
-    // really only need to do this one time
-    bell_silence();
   }
 }
 
@@ -230,15 +284,19 @@ void servo_10_demo(int numberOfDemoCycles){
     servo_set(SERVO_FULL_RANGE);
     delay(1000);        // wait
     led_off();
-    bell_ring(50);
+    bell_ring();
+    delay(50);
+    bell_silence();
     delay(1000);                  // wait
 
     led_red();
     servo_set(0);
     delay(1000);                  // wait
     led_off();
-    bell_ring(50);
-    delay(1000);                  // wait
+    bell_ring();
+    delay(50);
+    bell_silence();
+    delay(1000);                  // wait    
   }
 }
 
@@ -280,21 +338,21 @@ boolean  process_command(char *readBuffer,int readCount){
   } 
   else if (strcmp(command,"bell") == 0){
     if (strcmp(command2,"silence")==0){
-      bell_silence();
+      bell_ring_pattern(0);
       processedCommand = true;
     } 
     else if (strcmp(command2,"ring")==0){
-      if (parameter != NULL){
+      bell_ring_pattern(1);
+      processedCommand = true;
+    }
+    else if (strcmp(command2,"pattern")==0){
+      if (parameter!= NULL){
         int numericParameter = atoi(parameter);
-        if (numericParameter < 0){ 
-          numericParameter = 0; 
+        if (numericParameter < NUM_BELL_PATTERNS && numericParameter >= 0){
+          bell_ring_pattern(numericParameter);
+          processedCommand = true;
         }
-        else if (numericParameter > 30000) { 
-          numericParameter = 30000; 
-        }
-        bell_ring(numericParameter);
-        processedCommand = true;
-      }
+      }      
     }
   } 
   else if (strcmp(command,"servo")==0){
@@ -325,14 +383,14 @@ boolean  process_command(char *readBuffer,int readCount){
 void help(){
   Serial.println("h: help");
   Serial.println("?: help");
-  Serial.println("bell ring <time_msec>: ring bell max 30 seconds");
-  Serial.println("bell silence: turn off bell");
+  Serial.println("bell pattern <0..4>: Run one ringer patterns (0:off, 1:continuous)");
   Serial.println("led red: turn on red LED");
   Serial.println("led green: turn on green LED");
   Serial.println("led off: turn off LED");
-  Serial.print  ("servo set <0-");Serial.print(SERVO_FULL_RANGE);Serial.println(">: move servo maps to maximum range");
+  Serial.print  ("servo set <0>");Serial.print(SERVO_FULL_RANGE);Serial.println(">: move servo maps to maximum range");
   Serial.flush();
 }
+
 
 // end of file
 
