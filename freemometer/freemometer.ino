@@ -46,10 +46,16 @@ int servoSpeedPerStep = 4;  // in degrees
 // time between steps
 int servoStepInterval = 30; // in milliseconds 
 
-// bell patterns are orthogonal to teh bell End Time.  < 0 means no pattern
+// 
 volatile int bellPattern = 0;             // active bell pattern
 volatile int  bellCurrentState = 0;        // Current Position in the state array
 volatile unsigned long bellLastChangeTime; // the 'time' of the last state transition - saves the millis() value
+
+// support led patterns using same templates as bells
+volatile int ledActivePin = PIN_LED_GREEN;
+volatile int ledPattern = 0;
+volatile int ledCurrentState = 0;
+volatile unsigned long ledLastChangeTime;
 
 /*================================================================================
  *
@@ -71,16 +77,20 @@ typedef struct
   stateDefinition state[MAX_RING_STATES];    // can pick other numbers of slots
 } ringerTemplate;
 
-const int NUM_BELL_PATTERNS = 6;
+const int NUM_BELL_PATTERNS = 10;
 ringerTemplate ringPatterns[] =
 {
     //  state0 state1 state2 state3 
   { /* no variable before stateDefinition*/ {{false, 10000}, {false, 10000}, {false, 10000}, {false, 10000}}  /* no variable after stateDefinition*/ },
-  { /* no variable before stateDefinition*/ {{true, 10000},  {true, 10000},  {true, 10000},  {true, 10000}}   /* no variable after stateDefinition*/ },
-  { /* no variable before stateDefinition*/ {{true, 300},  {false, 300}, {false, 300}, {false, 300}}  /* no variable after stateDefinition*/ },
-  { /* no variable before stateDefinition*/ {{true, 200},  {false, 100}, {true, 200},  {false, 800}}  /* no variable after stateDefinition*/ },
-  { /* no variable before stateDefinition*/ {{true, 300},  {false, 400}, {true, 150},  {false, 400}}  /* no variable after stateDefinition*/ },
-  { /* no variable before stateDefinition*/ {{true, 100},  {false, 100}, {true, 100},  {false, 800}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true,  10000},  {true, 10000},  {true, 10000},  {true, 10000}}   /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true , 300}, {false, 300}, {false, 300}, {false, 300}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{false, 300}, {true , 300}, {true , 300}, {true , 300}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true , 200}, {false, 100}, {true , 200}, {false, 800}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{false, 200}, {true , 100}, {false, 200}, {true , 800}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true , 300}, {false, 400}, {true , 150}, {false, 400}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{false, 300}, {true , 400}, {false, 150}, {true , 400}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true , 100}, {false, 100}, {true , 100}, {false, 800}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{false, 100}, {true , 100}, {false, 100}, {true , 800}}  /* no variable after stateDefinition*/ },
 };
 
 /*================================================================================
@@ -171,14 +181,20 @@ void bell_silence(){
 void bell_ring_pattern(int patternNumber){
     bellLastChangeTime = millis();
     bellCurrentState=0;
-    if (ringPatterns[patternNumber].state[bellCurrentState].isRinging){
-      bell_ring();
-    } else {
-      bell_silence();
-    }
     bellPattern = patternNumber;
+    check_bell();
 }
 
+// 0 is the all off pattern.  1 is the all on pattern
+void led_pattern(int pin, int patternNumber){
+    ledLastChangeTime = millis();
+    ledCurrentState=0;
+    ledActivePin = pin;
+    ledPattern = patternNumber;
+    check_led();
+}
+
+// remember we have a two pin red/green led with no ground so we change color by flipping pins
 void led_off(){
   digitalWrite(PIN_LED_GREEN, LOW);    // set the LED on
   digitalWrite(PIN_LED_RED, LOW);       // set the LED off
@@ -226,6 +242,7 @@ void process_servos_and_bell(){
   move_servo(servo10, "S10", servoPosition10, servoTarget10, SERVO_START_10, SERVO_END_10);
   move_servo(servo9,  "S9", servoPosition9, servoTarget9, SERVO_START_9, SERVO_END_9);
   check_bell();
+  check_led();
 }
 
 // checks the bell pattern
@@ -235,11 +252,34 @@ void check_bell(){
       // calculate next state with rollover/repeat
       bellCurrentState = (bellCurrentState+1) % MAX_RING_STATES;
       bellLastChangeTime = millis();
-      if (ringPatterns[bellPattern].state[bellCurrentState].isRinging){
-        bell_ring();
+    }
+    // will this cause slight hickups in the bell if it's already ringing or already silent
+    if (ringPatterns[bellPattern].state[bellCurrentState].isRinging){
+      bell_ring();
+    } else {
+      bell_silence();
+    }
+  }
+}
+
+void check_led(){
+  if (bellPattern >= 0){ // quick range check
+    if (millis() >= ledLastChangeTime + ringPatterns[ledPattern].state[ledCurrentState].activeTime){
+      // calculate next state with rollover/repeat
+      ledCurrentState = (ledCurrentState+1) % MAX_RING_STATES;
+      ledLastChangeTime = millis();
+    }
+    // will this cause slight flicker if already showing led?
+    if (ringPatterns[ledPattern].state[ledCurrentState].isRinging){
+      if (ledActivePin == PIN_LED_GREEN){
+        led_green();
+      } else if (ledActivePin == PIN_LED_RED){
+        led_red();
       } else {
-        bell_silence();
+        led_off(); // don't know what to do so just turn off
       }
+    } else {
+      led_off();
     }
   }
 }
@@ -324,28 +364,34 @@ boolean  process_command(char *readBuffer,int readCount){
   } 
   else if (strcmp(command,"led") == 0){
     if (strcmp(command2,"green")==0){
-      led_green();
-      processedCommand = true;
+      if (parameter!= NULL){
+        int numericParameter = atoi(parameter);
+        if (numericParameter < NUM_BELL_PATTERNS && numericParameter >= 0){
+          led_pattern(PIN_LED_GREEN, numericParameter);
+          processedCommand = true;
+        }
+      }      
     } 
     else if (strcmp(command2,"red")==0){
-      led_red();
-      processedCommand = true;
+      if (parameter!= NULL){
+        int numericParameter = atoi(parameter);
+        if (numericParameter < NUM_BELL_PATTERNS && numericParameter >= 0){
+          led_pattern(PIN_LED_RED, numericParameter);
+          processedCommand = true;
+        }
+      }      
     } 
     else if (strcmp(command2,"off")==0){
-      led_off();
+      led_pattern(PIN_LED_GREEN, 0);  // pattern 0 is always off
       processedCommand = true;
     }
   } 
   else if (strcmp(command,"bell") == 0){
-    if (strcmp(command2,"silence")==0){
+    if (strcmp(command2,"off")==0){
       bell_ring_pattern(0);
       processedCommand = true;
     } 
     else if (strcmp(command2,"ring")==0){
-      bell_ring_pattern(1);
-      processedCommand = true;
-    }
-    else if (strcmp(command2,"pattern")==0){
       if (parameter!= NULL){
         int numericParameter = atoi(parameter);
         if (numericParameter < NUM_BELL_PATTERNS && numericParameter >= 0){
@@ -383,11 +429,12 @@ boolean  process_command(char *readBuffer,int readCount){
 void help(){
   Serial.println("h: help");
   Serial.println("?: help");
-  Serial.println("bell pattern <0..4>: Run one ringer patterns (0:off, 1:continuous)");
-  Serial.println("led red: turn on red LED");
-  Serial.println("led green: turn on green LED");
+  Serial.println("bell ring <0..9>: Run one ringer patterns (0:off, 1:continuous)");
+  Serial.println("bell off: sents the ringer to pattern 0, off");
+  Serial.println("led red <0..9>: turn on red LED using the pattern (0:off, 1:continuous)");
+  Serial.println("led green <0..9>: turn on green LED using the pattern (0:off, 1:continuous)");
   Serial.println("led off: turn off LED");
-  Serial.print  ("servo set <0>");Serial.print(SERVO_FULL_RANGE);Serial.println(">: move servo maps to maximum range");
+  Serial.print  ("servo set <0..");Serial.print(SERVO_FULL_RANGE);Serial.println(">: move servo maps to maximum range");
   Serial.flush();
 }
 
