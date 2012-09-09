@@ -16,9 +16,10 @@
 
 #include "TwoMsTimer.h"
 
-// RGB LEDs can have common high and the RGB (pwm) pins can sink (pull low) to enable
-// or can be         common low and drive the RGB (pwm) pins to enable.  
-// LED_ON_HIGH=true means the pins drive
+// RGB LEDs can be common Anode   (high) and the RGB (pwm) pins can sink (pull low) to enable
+// RGB LEDs can be common Cathode (low)  and the RGB (pwm) pins drive to enable.  
+// LED_ON_HIGH=true means common cathode, the pins drive
+// LED_ON_HIGH=false means common anode, the pins sink
 const boolean LED_ON_HIGH = false;           // are LEDs on with a high or a low?
 const int PWM_PINS[] = { P2_2, P1_6, P2_5 }; // red green blue
 const int HEARTBEAT_PIN = P1_0;    
@@ -73,6 +74,7 @@ void setup()  {
   ledLastChangeTime = millis();
   TwoMsTimer::set(STATE_STEP_INTERVAL, process_step);
   TwoMsTimer::start();
+  showPowerupSequence();  
 } 
 
 // main loop that runs as long as Arduino has power
@@ -92,13 +94,29 @@ void loop()
     }
   }
   if (newCharacter == '\r'){
+    // terminate c style string
     readBuffer[readCount] = '\0';
     // got a command so parse it
-    process_command(readBuffer,readCount);
+    process_command(readBuffer);
   } 
   else {
     // too many characters so start over
   }
+}
+
+// cheat and run the command processor to show colors
+void showPowerupSequence(){
+  char showRed[] = "rgb 250 0 0 1";
+  process_command(showRed);
+  delay(250);
+  char showGreen[] = "rgb 0 250 0 1";
+  process_command(showGreen);
+  delay(250);
+  char showBlue[] = "rgb 0 0 250 1";
+  process_command(showBlue);
+  delay(250);
+  char showOff[] = "rgb 0 0 0 0";
+  process_command(showOff);
 }
 
 /*=============================================
@@ -166,7 +184,7 @@ void update_heartbeat_led(){
  *================================================================================*/
 
 // first look for commands without parameters then with parametes 
-boolean  process_command(char *readBuffer,int readCount){
+boolean  process_command(char *readBuffer){
   // use string tokenizer to simplify parameters -- could be faster by only running if needed
   char *command;
   char *parsePointer;
@@ -203,7 +221,7 @@ boolean  process_command(char *readBuffer,int readCount){
       numericValue = atoi(pattern);
       if (numericValue < 0) { numericValue = 0; };
       if (numericValue > NUM_PATTERNS) { numericValue = NUM_PATTERNS-1; };
-      // don't affect the flashing timing if keep sending the same pattern number
+      // don't affect the flashing timing if requested current pattern number
       if (ledPattern != numericValue){
         ledPattern = numericValue;   
         ledLastChangeTime = millis();

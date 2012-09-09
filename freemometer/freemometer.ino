@@ -66,7 +66,7 @@ volatile unsigned long ledLastChangeTime;
 
 typedef struct
 {
-  boolean  isRinging;          // digital value for this state to be active (Ring/Silent)
+  boolean  isActive;          // digital value for this state to be active (Ring/Silent)
   unsigned long activeTime;    // time to stay active in this state stay in milliseconds 
 } stateDefinition;
 
@@ -254,7 +254,7 @@ void check_bell(){
       bellLastChangeTime = millis();
     }
     // will this cause slight hickups in the bell if it's already ringing or already silent
-    if (ringPatterns[bellPattern].state[bellCurrentState].isRinging){
+    if (ringPatterns[bellPattern].state[bellCurrentState].isActive){
       bell_ring();
     } else {
       bell_silence();
@@ -270,7 +270,7 @@ void check_led(){
       ledLastChangeTime = millis();
     }
     // will this cause slight flicker if already showing led?
-    if (ringPatterns[ledPattern].state[ledCurrentState].isRinging){
+    if (ringPatterns[ledPattern].state[ledCurrentState].isActive){
       if (ledActivePin == PIN_LED_GREEN){
         led_green();
       } else if (ledActivePin == PIN_LED_RED){
