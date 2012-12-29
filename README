@@ -13,6 +13,11 @@ depending on the hardware. The firmware supports various patterns for the LED an
 
 ti_launchpad_rgb firmware for an MSP430 launchpad with a single RGB LED.  It allows full PWM control
 and provides the same LED blink patterns that the Freemoemter provides for it's LED and mecahnical bell.
-Ts the simplest device to make and costs around $10 including the TI MSP430 Launchpad in 2012.
+It is the simplest device to make and costs around $10 including the TI MSP430 Launchpad in 2012.
+
+arduino_ethernet_LED is Arduino firmware that runs on the Arduino Ethernet board and communicates
+with a 3 wire Addressable LED strip, avaialble from Pololu 12/2012.  The arduino registers its
+address with Bonjour and runs a small web server that accepts POST commands to individually 
+control the lamps. There is a sample PERL script that shows the structure of the POST commands
 
 Writeups on the hardware for these devices may be available at http://joe.blog.freemansoft.com/
