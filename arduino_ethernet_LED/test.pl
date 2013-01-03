@@ -32,6 +32,16 @@ for ($color=3;$color>=0;$color--) {
 
 # turn on the lights one per time using the original single led command
 # this is a LOT slower
+# examples all use 
+#		$ua->post($url,
+#			[ r  => '0',
+#			 g => '0',
+#			 b => $actual_color,
+#			 l => $three
+#			],
+#		);	
+
+# demo one led per post
 for ($color=3;$color>=0;$color--) {
 	$actual_color=$color*64;
 	$i = 0;
@@ -40,29 +50,26 @@ for ($color=3;$color>=0;$color--) {
 		$two = $i+1;
 		$three = $i+2;
 		print "doing $one - $actual_color\n";
-		$ua->post($url,
-			[ r  => $actual_color,
-			 g => '0',
-			 b => '0',
-			 l => $one
-			],
-		);	
+		%{$post_hash} = ();
+		$post_hash{"s5"} = "Updating $one";
+		$post_hash{"r$one"} = $actual_color;
+		$post_hash{"g$one"} = '0';
+		$post_hash{"b$one"} = '0';
+		$ua->post($url,\%post_hash);
 		print "doing $two - $actual_color\n";
-		$ua->post($url,
-			[ r  => '0',
-			 g => $actual_color,
-			 b => '0',
-			 l => $two
-			],
-		);	
+		%{$post_hash} = ();
+		$post_hash{"s5"} = "Updating $two";
+		$post_hash{"r$two"} = '0';
+		$post_hash{"g$two"} =  $actual_color;
+		$post_hash{"b$two"} = '0';
+		$ua->post($url,\%post_hash);
 		print "doing $three - $actual_color\n";
-		$ua->post($url,
-			[ r  => '0',
-			 g => '0',
-			 b => $actual_color,
-			 l => $three
-			],
-		);	
+		%{$post_hash} = ();
+		$post_hash{"s5"} = "Updating $three";
+		$post_hash{"r$three"} = '0';
+		$post_hash{"g$three"} = '0';
+		$post_hash{"b$three"} = $actual_color;
+		$ua->post($url,\%post_hash);
 		$i=$i+3;
 	};
 }
