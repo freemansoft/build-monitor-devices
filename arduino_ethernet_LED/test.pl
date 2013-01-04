@@ -5,14 +5,15 @@ use Time::HiRes; qw(usleep);
 
 $ua = LWP::UserAgent->new;
 #the Bonjour name we gave it in the arduino code
-$url = 'http://arduino_led_strip.local/';
+$url = 'http://arduino_led.local/';
 $num_leds = 30;
 # blank the lights using the "all led" command
 $ua->post($url,
 	[ r  => '0',
 	 g => '0',
 	 b => '0',
-	 l => '-1'
+	 l => '-1',
+	 c => 'NA'
 	],
 );	
 
@@ -21,6 +22,7 @@ $ua->post($url,
 print "bam!  do them all in a single call (4 times)\n";
 my $post_hash  ;
 for ($color=3;$color>=0;$color--) {
+	$post_hash{"s5"} = "Updating All";
 	$actual_color=$color*64;
 	for ($count = 0 ; $count < $num_leds; $count++){
 		$post_hash{"r$count"} = $actual_color;

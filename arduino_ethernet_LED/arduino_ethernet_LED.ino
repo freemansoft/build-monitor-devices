@@ -57,6 +57,9 @@
 
 // mac address make something up. odds of collision on your network are low
 byte mac[] = { 0x46, 0x52, 0x45, 0x45, 0x4D, 0x4E };
+// shortened the name to 12 characters so it fits on the 5110 LCD.  
+// that is not required. You will want to name each device differently
+#define BONJOUR_HOST_NAME "Arduino_LED"
 
 // webduino on top of web server on port 80
 // can pick a prefix but I'm not sure how you mention that prefix in the Bonjour library with the text area
@@ -207,7 +210,7 @@ void setup()
   // system is Bonjour-enabled (such as MacOS X).
   // Always call this before any other method!
   // esentially the server name in bonjour
-  EthernetBonjour.begin("arduino_LED_strip");
+  EthernetBonjour.begin(BONJOUR_HOST_NAME);
 
   // Now let's register the service we're offering (a web service) via Bonjour!
   // To do so, we call the addServiceRecord() method. The first argument is the
@@ -240,17 +243,22 @@ void setup()
   // space padding not required but it reminds me we have 12 characters per line
   LCDInit(); //Init the LCD
   LCDClear();
+  LCDString("Bonjour Name");
+  gotoXY(0,1);
   // clear reset to the home position
-  LCDString("Web Server  ");
-  gotoXY(0,2);
-  LCDString("IP:");
+  LCDString(BONJOUR_HOST_NAME);
+  gotoXY(0,3);
+  LCDString("Server IP");
+  gotoXY(0,4);
   
-  //char buf[4];
+  char buf[4];
   for (byte thisByte = 0; thisByte < 4; thisByte++) {
+    if (thisByte != 0){
+      LCDString("."); 
+    }
     // print the value of each byte of the IP address:
-    //itoa(Ethernet.localIP()[thisByte],buf,10)
-    //LCDString(buf);
-    LCDString("."); 
+    itoa(Ethernet.localIP()[thisByte],buf,10);
+    LCDString(buf);
   }
 
 }
