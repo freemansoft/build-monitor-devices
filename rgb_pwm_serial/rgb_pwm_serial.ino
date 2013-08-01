@@ -4,7 +4,7 @@
   This program written by Joe Freeman, joe@freemansoft.com
   Give me some credit if you this code in our project :-)
  
-  This program blinks some LEDs based on settings
+  This program automates color and blink rates based on passed in settings
   It ramps up and down the colors so we don't get sudden LED style transitons
   
   The firmware supports two RGB lights on the PWM ports OR 5 lights
@@ -12,7 +12,7 @@
   The firmware auto-detects if there is a PCA9635 on the I2C bus at 0x40
   and falls back to the internal PWM if there is no PCA9635 found
   
-  Additional functionality has been hacked in to allow control of the
+  Additional functionality has been hacked in to allow control of the 32 LED
   Sparkfun Addressable LED strip. The control code is straight from the
   Sparkfun demo program.  You can connect a button from A5 to ground and
   the strip will rotate colors every time you press the button
@@ -26,8 +26,8 @@
   Blink
   ~b#ooofff;
     # the led triplet (ascii starts at ascii '0')
-    lll "led on" time for each in 1/2 seconds ('0'-'F' ascii)
-    ddd "led off" time for each in 1/2 seconds ('0'-'F' ascii)
+    ooo "led on" time for each in 1/2 seconds ('0'-'F' ascii)
+    fff "led off" time for each in 1/2 seconds ('0'-'F' ascii)
     echos "+<command>" on success
   Query
   ~q#;
@@ -39,9 +39,9 @@
     # of the led triplet (ascii starts at ascii '0'->'0'+31) not HEX
     RGB  colors for each LED '0'-'F' (hex as characters) 16 values per pixel
     echos  "+<command>" on success
-  Color for all strip elements on sparkfun addressable LED
+  Color for all strip elements on sparkfun addressable LED individually in single command
   ~Scccccccccccccccccccccccccccccccc;
-    32 colors where each color is a CSS1/HTML3-4 color from teh 16 color palette
+    32 colors where each color is a CSS1/HTML3-4 color from the 16 color palette
     Colors range from '0'-'F' (hex as characters) where the number is the CGA number
     See http://en.wikipedia.org/wiki/Web_colors
     black,navy,green,teal,maroon,purple,olive,silver,gray,blue,lime,aqua,red,fuschia,yellow,white
@@ -64,16 +64,21 @@ const int NUM_TRIPLETS_DIMMER_PLUG = 5;
 /* the initialize method will change the number of triplets to match the hardware */
 int numTriplets= 0;
 
-/* pwm pins R/G/B - change the order to suite your layout */
+/* 
+  2 RGB LEDs using 6 of the PWM pins
+  pwm pins R/G/B - change the order to suite your layout 
+ */
 int pwmPins[NUM_TRIPLETS_PWM][3]={{9,10,11}, {3,5,6}};
 /* 
+  jee devices has a breakout header.  Pins selected to make that (mostly) simpler wiring
   pwm pins R/G/B - change the order to suite your layout 
   These are layed out so that 1 light is in row 1, 2 in in row 2 and 4 in row 3.  
-  The last LED is just the leftover pins
+  The last LED is just the leftover pins so that one's wiring is a bit messy 
  */
 int i2cPins[NUM_TRIPLETS_DIMMER_PLUG][3]={{0,1,2},{5,6,7},{8,9,10},{11,12,13},{3,4,14}};
 
 // these are all sized as NUM_TRIPLETS_DIMMER_PLUG because it is the larger device supported
+// The two LED (no I2C device) just use the first two slots
 
 /* max brightness with defaults */
 int brightnessPrimary[NUM_TRIPLETS_DIMMER_PLUG][3];
@@ -133,12 +138,12 @@ int correctedBrightnessTable[] = {
 
 /* a buffer of read charactes sized to the maximum command length*/
 char readBuffer[37];
-/* maximum command length is 2+32+1 or 35 characters */
+/* maximum command length is 2+32+1 or 35 characters (the ~s command) */
 int readBufferSize = 36;
 /* number of characters in the buffer */
 int readBufferCount = 0;
 
-/** the last analog button read */
+/** the last analog button read used for tracking transitions*/
 int lastAnalogButtonRead = 0;
 
 // standard arduino setup method
@@ -197,7 +202,7 @@ void loop()
 
 /**
  * initialize all of the buffer variables
- * yellow is blinking , all others off
+ * create a really bad color pattern to show unit alive
  */
 void initializeBuffers(){
   // do the full buffer even if only running hardware pwm

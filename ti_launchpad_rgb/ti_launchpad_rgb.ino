@@ -6,6 +6,12 @@
   PC and other programs communicate over the USB emulated serial port @ 9600 baud
   All commands must end with a carraige return.
   Send "h\cr" to get a list of commands
+  
+  This understands commands in the format
+  "rgb red green blue blink" to set light color and blink pattern
+    red, green, blue are 0-255
+    blink is 0-9
+  "?" means help
  */
  
 #if defined(__MSP430G2452__) || defined(__MSP430G2553__) || defined(__MSP430G2231__) // LaunchPad specific
