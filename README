@@ -20,4 +20,7 @@ with a 3 wire Addressable LED strip, avaialble from Pololu 12/2012.  The arduino
 address with Bonjour and runs a small web server that accepts POST commands to individually 
 control the lamps. There is a sample PERL script that shows the structure of the POST commands
 
+neo_pixel_panel is an Adafruit NeoPixel Arduino RGB 5x8 shield. This provides color and blink control
+via ASCII terminal commands.
+
 Writeups on the hardware for these devices may be available at http://joe.blog.freemansoft.com/
