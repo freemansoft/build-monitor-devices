@@ -8,6 +8,8 @@
   rgb   <led 0..39> <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>
   rgb   <all -1>    <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>
   debug <true|false> log all input to serial
+  blank clears all
+  demo random colors 
   
  */
 #include <Adafruit_NeoPixel.h>
@@ -39,7 +41,7 @@ typedef struct
 } pixelDefinition;
 // should these be 8x5 intead of linear 40 ?
 volatile pixelDefinition lightStatus[NUM_PIXELS];
-
+volatile boolean stripShowRequired = false;
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -91,12 +93,13 @@ const ringerTemplate ringPatterns[] =
 void setup() {
   // 50usec for 40pix @ 1.25usec/pixel : 19200 is .5usec/bit or 5usec/character
   // there is a 50usec quiet period between updates 
-  // Serial.begin(19200);
+  //Serial.begin(19200);
   // don't want to lose characters if interrupt handler too long
   // serial interrupt handler can't run so arduino input buffer length is no help
   Serial.begin(9600);
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
+  stripShowRequired = false;
 
   // initialize our buffer as all LEDS off
   go_dark();
@@ -116,6 +119,13 @@ void loop(){
   int readCount = 0;
   char newCharacter = '\0';
   while((readCount < READ_BUFFER_SIZE) && newCharacter !='\r'){
+    // did the timer interrupt handler make changes that require a strip.show()?
+    // note: strip.show() attempts to unmask interrupts as much as possible
+    // must be inside character read while loop
+    if (stripShowRequired) {
+      stripShowRequired = false;
+      strip.show();
+    }
     if (Serial.available()){
       newCharacter = Serial.read();
       if (newCharacter != '\r'){
@@ -137,7 +147,7 @@ void loop(){
     process_command(readBuffer,readCount);
   } 
   else {
-    // too many characters so start over
+    // while look exited because too many characters so start over
   }
 }
 
@@ -153,6 +163,8 @@ void go_dark(){
     lightStatus[index].lastChangeTime = ledLastChangeTime;
     strip.setPixelColor(index, lightStatus[index].activeValues);
   }
+  // force them all dark immediatly so they go out at the same time
+  // could have waited for timer but different blink rates would go dark at slighly different times
   strip.show();
 }
 
@@ -167,7 +179,8 @@ void process_blink(){
   for ( int index = 0 ; index < NUM_PIXELS; index++){
     byte currentPattern = lightStatus[index].pattern; 
     if (currentPattern >= 0){ // quick range check for valid pattern?
-      if (now >= lightStatus[index].lastChangeTime + ringPatterns[currentPattern].state[lightStatus[index].currentState].activeTime){
+      if (now >= lightStatus[index].lastChangeTime 
+          + ringPatterns[currentPattern].state[lightStatus[index].currentState].activeTime){
         // calculate next state with rollover/repeat
         int currentState = (lightStatus[index].currentState+1) % MAX_STATES;
         lightStatus[index].currentState = currentState;
@@ -183,8 +196,10 @@ void process_blink(){
       }
     }
   }
+  // don't show in the interrupt handler because interrupts would be masked
+  // for a long time. 
   if (didChangeSomething){
-    strip.show();
+    stripShowRequired = true;
   }
 }
 
@@ -202,24 +217,11 @@ boolean  process_command(char *readBuffer, int readCount){
   //  First strtok iteration
   command = strtok_r(readBuffer," ",&parsePointer);
 
-   boolean processedCommand = false;
+  boolean processedCommand = false;
   if (strcmp(command,"h") == 0 || strcmp(command,"?") == 0){
     help();
     processedCommand = true;
-  } 
-  else if (strcmp(command,"debug") == 0){
-    char * shouldLog   = strtok_r(NULL," ",&parsePointer);
-    if (strcmp(shouldLog,"true") == 0){
-      logDebug = true;
-    } else {
-      logDebug = false;
-    }
-    processedCommand = true;
-  }
-  else if (strcmp(command,"blank") == 0){
-    go_dark();
-  }
-  else if (strcmp(command,"rgb") == 0){
+  } else if (strcmp(command,"rgb") == 0){
     char * index   = strtok_r(NULL," ",&parsePointer);
     char * red     = strtok_r(NULL," ",&parsePointer);
     char * green   = strtok_r(NULL," ",&parsePointer);
@@ -270,6 +272,20 @@ boolean  process_command(char *readBuffer, int readCount){
       }
       processedCommand = true;   
     }
+  } else if (strcmp(command,"blank") == 0){
+    go_dark();
+    processedCommand = true;
+  } else if (strcmp(command,"debug") == 0){
+    char * shouldLog   = strtok_r(NULL," ",&parsePointer);
+    if (strcmp(shouldLog,"true") == 0){
+      logDebug = true;
+    } else {
+      logDebug = false;
+    }
+    processedCommand = true;
+  } else if (strcmp(command,"demo") == 0){
+    configureForDemo();
+    processedCommand = true;
   } else {
     // completely unrecognized
   }
@@ -290,6 +306,7 @@ void help(){
   Serial.println("rgb   <all -1>    <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>");
   Serial.println("debug <true|false> log all input to serial");
   Serial.println("blank clears all");
+  Serial.println("demo  color and blank wheel");
   Serial.flush();
 }
 
