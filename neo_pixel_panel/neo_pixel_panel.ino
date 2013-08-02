@@ -1,6 +1,14 @@
 /*
   Written by Freemansoft Inc.
-  Exercise Neopixel shield using the adafruit NeoPixel library
+  Exercise Neopixel (WS2811 or WS2812) shield using the adafruit NeoPixel library
+  You need to download the Adafruit NeoPixel library from github, 
+  unzip it and put it in your arduino libraries directory
+  
+  commands include
+  rgb   <led 0..39> <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>
+  rgb   <all -1>    <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>
+  debug <true|false> log all input to serial
+  
  */
 #include <Adafruit_NeoPixel.h>
 #include <MsTimer2.h>
@@ -63,8 +71,9 @@ const int NUM_PATTERNS = 10;
 const ringerTemplate ringPatterns[] =
 {
     //  state0 state1 state2 state3 
-  { /* no variable before stateDefinition*/ {{false, 10000}, {false, 10000}, {false, 10000}, {false, 10000}}  /* no variable after stateDefinition*/ },
-  { /* no variable before stateDefinition*/ {{true,  10000},  {true, 10000},  {true, 10000},  {true, 10000}}   /* no variable after stateDefinition*/ },
+    // the length of these times also limit how quickly changes will occure. color changes are only picked up when a true transition happens
+  { /* no variable before stateDefinition*/ {{false, 1000}, {false, 1000}, {false, 1000}, {false, 1000}}  /* no variable after stateDefinition*/ },
+  { /* no variable before stateDefinition*/ {{true,  1000},  {true, 1000},  {true, 1000},  {true, 1000}}   /* no variable after stateDefinition*/ },
   { /* no variable before stateDefinition*/ {{true , 300}, {false, 300}, {false, 300}, {false, 300}}  /* no variable after stateDefinition*/ },
   { /* no variable before stateDefinition*/ {{false, 300}, {true , 300}, {true , 300}, {true , 300}}  /* no variable after stateDefinition*/ },
   { /* no variable before stateDefinition*/ {{true , 200}, {false, 100}, {true , 200}, {false, 800}}  /* no variable after stateDefinition*/ },
@@ -80,7 +89,9 @@ const ringerTemplate ringPatterns[] =
 
 
 void setup() {
-  Serial.begin(19200);
+  // 50usec for 40pix @ 1.25usec/pixel : 19200 is .5usec/bit or 5usec/character
+  // there is a 50usec quiet period between updates 
+  // Serial.begin(19200);
   // don't want to lose characters if interrupt handler too long
   // serial interrupt handler can't run so arduino input buffer length is no help
   Serial.begin(9600);
@@ -88,15 +99,12 @@ void setup() {
   strip.show(); // Initialize all pixels to 'off'
 
   // initialize our buffer as all LEDS off
-  unsigned long ledLastChangeTime = millis();
-  for ( int index = 0 ; index < NUM_PIXELS; index++){
-    lightStatus[index].currentState = 0;
-    lightStatus[index].pattern = 0;
-    lightStatus[index].activeValues = strip.Color(0,0,0);
-    lightStatus[index].lastChangeTime = ledLastChangeTime;
-  }
-  
-  //configureForDemo();
+  go_dark();
+
+  //show a quickcolor pattern
+  configureForDemo();
+  delay(3000);
+  go_dark();
   
   MsTimer2::set(STATE_STEP_INTERVAL, process_blink);
   MsTimer2::start();
@@ -133,12 +141,28 @@ void loop(){
   }
 }
 
+/*
+ * blank out the LEDs and buffer
+ */
+void go_dark(){
+  unsigned long ledLastChangeTime = millis();
+  for ( int index = 0 ; index < NUM_PIXELS; index++){
+    lightStatus[index].currentState = 0;
+    lightStatus[index].pattern = 0;
+    lightStatus[index].activeValues = strip.Color(0,0,0);
+    lightStatus[index].lastChangeTime = ledLastChangeTime;
+    strip.setPixelColor(index, lightStatus[index].activeValues);
+  }
+  strip.show();
+}
+
 //////////////////////////// handler  //////////////////////////////
 //
 /*
   Interrupt handler that handles all blink operations
  */
 void process_blink(){
+  boolean didChangeSomething = false;
   unsigned long now = millis();
   for ( int index = 0 ; index < NUM_PIXELS; index++){
     byte currentPattern = lightStatus[index].pattern; 
@@ -155,10 +179,13 @@ void process_blink(){
         } else {
           strip.setPixelColor(index,strip.Color(0,0,0));
         }
+        didChangeSomething = true;
       }
     }
   }
-  strip.show();
+  if (didChangeSomething){
+    strip.show();
+  }
 }
 
 // first look for commands without parameters then with parametes 
@@ -188,6 +215,9 @@ boolean  process_command(char *readBuffer, int readCount){
       logDebug = false;
     }
     processedCommand = true;
+  }
+  else if (strcmp(command,"blank") == 0){
+    go_dark();
   }
   else if (strcmp(command,"rgb") == 0){
     char * index   = strtok_r(NULL," ",&parsePointer);
@@ -250,12 +280,16 @@ boolean  process_command(char *readBuffer, int readCount){
   return processedCommand;
 }
 
+/*
+ * Simple method that displays the help
+ */
 void help(){
   Serial.println("h: help");
   Serial.println("?: help");
-  Serial.println("rgb <led 0..39> <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>");
-  Serial.println("rgb <all -1>    <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>");
+  Serial.println("rgb   <led 0..39> <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>");
+  Serial.println("rgb   <all -1>    <red 0..255> <green 0..255> <blue 0..255> <pattern 0..9>: set RGB pattern to  pattern <0:off, 1:continuous>");
   Serial.println("debug <true|false> log all input to serial");
+  Serial.println("blank clears all");
   Serial.flush();
 }
 
@@ -279,7 +313,7 @@ void configureForDemo(){
   strip.show();
 }
 
-//////////////////////////// old stuff  //////////////////////////////
+//////////////////////////// stuff from the Adafruit NeoPixel sample  //////////////////////////////
 
 
 // Input a value 0 to 255 to get a color value.
