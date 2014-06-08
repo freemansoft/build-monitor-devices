@@ -7,10 +7,10 @@
 //      2 W5100 interrupt when bridged
 //      4 SD Card SS (if not using Nokia 5110)
 //      3 optional Nokia 5110 CLK
-//      4 optoinal Nokia 5110 DIn
-//      5 optoinal Nokia 5110 DC
-//      6 optoinal Nokia 5110 Rst Reset (6 and 7 are twisted on LCD breakout board)
-//      7 optoinal Nokia 5110 CE Chip Enable (6 and 7 are twisted on LCD breakout board)
+//      4 optional Nokia 5110 DIn
+//      5 optional Nokia 5110 DC
+//      6 optional Nokia 5110 Rst Reset (6 and 7 are twisted on LCD breakout board)
+//      7 optional Nokia 5110 CE Chip Enable (6 and 7 are twisted on LCD breakout board)
 //      8 LED Strip
 //     10 SPI Wiznet SS
 //     11 SPI

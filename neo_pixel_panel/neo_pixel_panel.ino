@@ -331,8 +331,6 @@ void configureForDemo(){
 }
 
 //////////////////////////// stuff from the Adafruit NeoPixel sample  //////////////////////////////
-
-
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
 uint32_t Wheel(byte WheelPos) {
