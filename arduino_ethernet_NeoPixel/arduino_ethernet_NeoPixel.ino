@@ -19,15 +19,14 @@
 //  It demonstrates how to combine bonjour and the webduino project to create a web 
 //  server that controls a Adafruit Neopixel shield
 //  
-//  Portions of this file originated from Arduino EthernetBonjour.
-//  This later code kills my router/network FVS318N https://github.com/TrippyLighting/EthernetBonjour
-//  Using code is available here https://github.com/neophob/EthernetBonjour
-//  The original code is available here http://gkaindl.com
-//
-//
-//  Portions of this file originated from the Webduino project https://github.com/sirleech/Webduino
-//  Portions of this file originated from teh Sparkfun Web site supporting their Nokia LCD breakout board 
+//  Bonjour zeroconf functionality of this file originated from Arduino EthernetBonjour.
+//    This later code kills my router/network FVS318N https://github.com/TrippyLighting/EthernetBonjour
+//    Using code is available here https://github.com/neophob/EthernetBonjour
+//    The original code is available here http://gkaindl.com
+//  Web Server functionality originated from the Webduino project https://github.com/sirleech/Webduino
+//  Nokia 5110 style LCD control code originated on the Sparkfun Web site supporting their Nokia LCD breakout board 
 //    http://www.sparkfun.com/Code/Nokia_Example_Bitmap.pde
+//  Adafruit NeoPixel shield libraries came from https://github.com/adafruit/Adafruit_NeoPixel
 //
 //  See http://arduino.cc/en/Guide/Libraries on how to import the necessary libraries 
 //
