@@ -7,7 +7,10 @@
   This program automates color and blink rates based on passed in settings
   It ramps up and down the colors so we don't get sudden LED style transitons
   
-  The firmware supports two RGB lights on the PWM ports OR 5 lights
+  The firmware supports two RGB lights on the Arduino PWM ports.
+  There can be up to do lights in this configuration
+ 
+  It also supports 5 lights
   on a PCA9635 I2C PWM chip, specifically the JeeLabs Dimmer plug.
   The firmware auto-detects if there is a PCA9635 on the I2C bus at 0x40
   and falls back to the internal PWM if there is no PCA9635 found
@@ -17,17 +20,21 @@
   Sparkfun demo program.  You can connect a button from A5 to ground and
   the strip will rotate colors every time you press the button
   
+  Note: Verify the value of the  INVERTED_PWM flag in this code.
+  
   Accepts the followng commands:
   Color set max min color at 0
   ~c#RGB;
     # the led triplet (ascii starts at ascii '0')
     RGB  colors for each LED '0'-'F' (hex as characters) 16 values per pixel
+    Ex: ~c1888; means set the color of all 3 RGB LEDs to half bright.
     echos  "+<command>" on success
   Blink
   ~b#ooofff;
     # the led triplet (ascii starts at ascii '0')
     ooo "led on" time for each in 1/2 seconds ('0'-'F' ascii)
     fff "led off" time for each in 1/2 seconds ('0'-'F' ascii)
+    Ex: ~b14414443 means blink light 1.  Set the red and green to 4 1/4 sec or 2 sec 
     echos "+<command>" on success
   Query
   ~q#;
@@ -58,7 +65,12 @@
           Add analog button code for Addressable strip. Could be used for something else
  */
 
-/* number of LED triplets. Set this to 1 if you only have one RGB cluster. */
+/* 
+  number of LED triplets. Set this to 1 if you only have one RGB cluster. 
+  set INVERTED_PWM to true if you have to sink current to turn LEDs.
+*/
+const boolean INVERTED_PWM = true;
+/** 6 pwm pins means two PWM RGGB */
 const int NUM_TRIPLETS_PWM = 2;
 const int NUM_TRIPLETS_DIMMER_PLUG = 5;
 /* the initialize method will change the number of triplets to match the hardware */
@@ -151,7 +163,7 @@ void setup() {
   Serial.begin(19200);
   initializeBuffers();
   // first try the I2C
-  Wire.begin();     // make ourselves the I2C master
+  Wire.begin();         // make ourselves the I2C master
   initializePCA9635();  // but we may switch to I2C if we find device
   // then initialize the PWM if needed. 
   initializePWM();  // start off as if we are PWM
@@ -396,14 +408,18 @@ int convertAsciiHexToInt(char character){
 
 /**
  * list of valid status commands
+ * there is some weird sensitity to the strings in here
  */
 void processHelpRequest(){
-  Serial.println("~c#RGB;    set color    #=triplet, RGB is 0-F");
-  Serial.println("~b#lllddd; set blink    #=triplet, lll is 1/2 secs lit and ddd is 1/2 secs dark");
-  Serial.println("~q#;       query status #=triplet, results 3 LED x4 attrib");
+  Serial.println("");
+  Serial.println("~c#RGB;    set color    #=LED, RGB is 0-F");
+  Serial.println("~b#lllddd; set blink    #=LED, lll RGB is 1/2 secs lit and ddd RGB is 1/2 secs dark");
+  Serial.println("~q#;       query status #=LED, 3 LED x4 attrib on/off/blink-on/blink-off");
   Serial.println("~s#RGB;    set strip color #=LED '0'-'0'+31, RGB is 0-F");
   Serial.println("~Scc...;   whole strip  32 colors '0'-'F' from CSS1/HTML3-4 color palette");
   Serial.println("~h;        this help string");
+  Serial.println("");
+  
 }
 
 
@@ -462,7 +478,6 @@ void processStatusQuery(char *currentBuffer){
   int triplet = getTripletNumber(currentBuffer);
   for (int i = 0; i < 3; i++){
     if (i !=0){ Serial.print(":"); }
-    
     int maxBright = brightnessPrimary[triplet][i];
     Serial.print(maxBright);
     
@@ -473,7 +488,7 @@ void processStatusQuery(char *currentBuffer){
     Serial.print(",");
     int on =  blinkMsecPrimary[triplet][i];
     Serial.print(on);
-    
+
     Serial.print(",");
     int off = blinkMsecSecondary[triplet][i];
     Serial.print(off);
@@ -520,7 +535,13 @@ void initializePWM(){
  */
 void writePwmLEDViaLookup(int triplet,int pin){
     int brightnessIndex = brightnessCurrent[triplet][pin];
-    analogWrite(pwmPins[triplet][pin],correctedBrightnessTable[brightnessIndex]);  
+    if (INVERTED_PWM){
+      // inverted pin control when sink to light up
+      analogWrite(pwmPins[triplet][pin],255-correctedBrightnessTable[brightnessIndex]);  
+    } else {
+      // standard pin control wource to light up
+      analogWrite(pwmPins[triplet][pin],correctedBrightnessTable[brightnessIndex]);  
+    }
 }
 
 /*====================================================================================
@@ -720,8 +741,8 @@ void writePCA9635LEDBrightness( int dimmerPin,  byte value){
 byte writePCA9635ViaI2c( int address,  byte i2cData){
   Wire.beginTransmission(DIMMER_PLUG_ADDRESS);
   byte targetRegister = (byte)address;
-  Wire.send(targetRegister);
-  Wire.send(i2cData);
+  Wire.write(targetRegister);
+  Wire.write(i2cData);
   // 0 success 
   // 1 data too long to fit in transmit buffer 
   // 2 received NACK on transmit of address 
