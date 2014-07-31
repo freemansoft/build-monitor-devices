@@ -1,4 +1,5 @@
 #include <Wire.h>   // include Wire library for I2C
+#include <avi/pgmspace.h>
 /*
   rgb_pwm_serial v11.06
   This program written by Joe Freeman, joe@freemansoft.com
@@ -131,7 +132,7 @@ int transitionIncrement = 0;
   from http://harald.studiokubota.com/wordpress/index.php/2010/09/05/linear-led-fading/
   exp($i/46)
   */
-int correctedBrightnessTable[] = {
+PROGMEM prog_int16_t correctedBrightnessTable[] = {
   0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,
   3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,5,5,5,
@@ -174,6 +175,7 @@ void setup() {
   // setup pin A5 as a possible input
   // this turns on the pull up so we can detect shorts to ground without external
   pinMode(A5,INPUT);
+  digitalWrite(A5,HIGH);
   takeButtonAction();
   // added so PCs could detect when the device has come out of the boot loader
   Serial.print("initialized");
@@ -537,10 +539,10 @@ void writePwmLEDViaLookup(int triplet,int pin){
     int brightnessIndex = brightnessCurrent[triplet][pin];
     if (INVERTED_PWM){
       // inverted pin control when sink to light up
-      analogWrite(pwmPins[triplet][pin],255-correctedBrightnessTable[brightnessIndex]);  
+      analogWrite(pwmPins[triplet][pin],255-pgm_read_word(&correctedBrightnessTable[brightnessIndex]));  
     } else {
       // standard pin control wource to light up
-      analogWrite(pwmPins[triplet][pin],correctedBrightnessTable[brightnessIndex]);  
+      analogWrite(pwmPins[triplet][pin],pgm_read_word(&correctedBrightnessTable[brightnessIndex]));  
     }
 }
 
@@ -725,7 +727,7 @@ void initializePCA9635(){
  */
 void writePCA9635LEDViaLookup(int triplet,int pin){
     int brightnessIndex = brightnessCurrent[triplet][pin];    
-    byte brightness = (byte)correctedBrightnessTable[brightnessIndex];
+    byte brightness = (byte)pgm_read_word(&correctedBrightnessTable[brightnessIndex]);
     writePCA9635LEDBrightness(i2cPins[triplet][pin],brightness);  
 }
 
@@ -919,19 +921,27 @@ void processFullStripCommand(char *currentBuffer){
  * Example Analog button handler code
  *  rotates cbuffer on sparkfun analog strip on every push
  *
- *==================================================================
+ *================================================================== 
  */
+ 
+const int BUTTON_PRESSED = 0;
+const int BUTTON_NOT_PRESSED = 1;
  /**
  * returns 1 if button not pressed and 0 if button pressed to short
  */
 int binaryAnalogRead(){
   int readValue = analogRead(A5);
   if (readValue<100){
-    return 0;
+    return BUTTON_PRESSED;
   } else {
-    return 1;
+    return BUTTON_NOT_PRESSED;
   }
 }
+
+const int ALL_RED = 0;
+const int ALL_GREEN = 1;
+const int ALL_BLUE = 2;
+int currentAllStrip = 0;
 
 /**
  * example button action
@@ -940,25 +950,48 @@ int binaryAnalogRead(){
 void takeButtonAction(){
     int newButtonValue = binaryAnalogRead();
     if (newButtonValue != lastAnalogButtonRead){
-      if (newButtonValue == 0 && lastAnalogButtonRead ==1){
-        int lastSlot = STRIP_LENGTH-1;
-        int zeroBufferR = stripColors[0][0];
-        int zeroBufferG = stripColors[0][1];
-        int zeroBufferB = stripColors[0][2];
-        for (int stripNumber = 0; stripNumber <lastSlot; stripNumber++){
-            for (int rgb =0; rgb < 3; rgb++){
-              stripColors[stripNumber][rgb] = stripColors[stripNumber+1][rgb];
-            }
-        }
-        stripColors[lastSlot][0] = zeroBufferR;
-        stripColors[lastSlot][1] = zeroBufferG;
-        stripColors[lastSlot][2] = zeroBufferB;
-        // show it
-        postFrame();
+      if (newButtonValue == BUTTON_PRESSED && lastAnalogButtonRead == BUTTON_NOT_PRESSED){
+          currentAllStrip = (currentAllStrip+1)%3;
+          fillAllStrip(currentAllStrip);
       }
-      
       lastAnalogButtonRead = newButtonValue;
     }
 }
 
+void fillAllStrip(int funkyStripColor){
+  for (int stripNumber = 0; stripNumber <STRIP_LENGTH-1; stripNumber++){
+        if (funkyStripColor == ALL_RED){
+          stripColors[stripNumber][0] = 0x80;
+          stripColors[stripNumber][1] = 0;
+          stripColors[stripNumber][2] = 0;
+        } else if (funkyStripColor == ALL_GREEN){
+          stripColors[stripNumber][0] = 0;
+          stripColors[stripNumber][1] = 0x80;
+          stripColors[stripNumber][2] = 0x10;
+        } else if (funkyStripColor == ALL_BLUE){
+          stripColors[stripNumber][0] = 0x0;
+          stripColors[stripNumber][1] = 0x0;
+          stripColors[stripNumber][2] = 0x80;
+        }
+      delay(50);
+      postFrame();
+      
+  }
+}
 
+void walkStripColors(){
+      int lastSlot = STRIP_LENGTH-1;
+      int zeroBufferR = stripColors[0][0];
+      int zeroBufferG = stripColors[0][1];
+      int zeroBufferB = stripColors[0][2];
+      for (int stripNumber = 0; stripNumber <lastSlot; stripNumber++){
+          for (int rgb =0; rgb < 3; rgb++){
+            stripColors[stripNumber][rgb] = stripColors[stripNumber+1][rgb];
+          }
+      }
+      stripColors[lastSlot][0] = zeroBufferR;
+      stripColors[lastSlot][1] = zeroBufferG;
+      stripColors[lastSlot][2] = zeroBufferB;
+      // show it
+      postFrame();
+}
