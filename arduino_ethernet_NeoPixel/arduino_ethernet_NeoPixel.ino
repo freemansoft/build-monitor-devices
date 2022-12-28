@@ -65,7 +65,7 @@ EthernetUDP udp;
 // pin 8 - LCD (CS) (SCE)
 // pin 7 - LCD (RST)
 Adafruit_PCD8544 display = Adafruit_PCD8544(3,4,5,8,7);
-#define PCD8544_CONTRAST 20
+#define PCD8544_CONTRAST 50
 // multiplying this didn't work
 #define PCD8544_LINE_HEIGHT 8
 
@@ -144,6 +144,7 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
        */
       if (name[0] == 'c'){
         display.clearDisplay();
+        display.display();
       } else if (name[0]=='s' && name[1] != '\0'){
         nameNumber = &name[1];
         int row = atoi(nameNumber);

@@ -42,15 +42,24 @@ response = requests.post(url, data=myobj)
 
 # Troubleshooting
 1. The Ethernet IP address of the web server is displayed on the Nokia 5110
-1. If you are uing the Nokia 5110 display to show your IP address and it is too light or too dark then adjust the `contrast` parameter in the code
-1. The Nokia 5110 pins are slightly different than standard because the NeoPixel shield uses pin 6
-1. The app is very memory constrained.  Enabling the Serial port may crash the Arduino.
+1. If you are using the Nokia 5110 display and you have trouble reading the text then that is often a contrast issue.  Adjust the `contrast` parameter buried in the ino file
+1. The Nokia 5110 pin assignments are slightly different than standard because the NeoPixel shield uses pin 6.  This uses pins 3,4,5,7,8 instead of 3,4,5,6,7.
+1. Enabling the Serial port may crash the Arduino.  The code is very memory constrained.
 
 # Build and Deploy
 Build and deploy using the Arduino IDE
 
 # Board Under Test
 
+1. Arduino Ethernet
+1. Proto Shield.  I did a small cutout over and around the ethernet jack so it could be pressed all the way down.
+1. Nokia 5110 style LCD display.
+1. 8 pin header mounted on the end of the Proto Shield at 90 so the cable easily plug into the shield
+1. Double ended 8 pin socket cable to connect the Proto Shield and the LCD
+1. AdaFruit Neopixel 8x5 40 pixel shield
+1. USB to RX/TX adapter for programming
+
+## Arduino Ethernet
 The Arduino Ethernet is a microcontroller board based on the ATmega328. It has 14 digital input/output pins, 6 analog inputs, a 16 MHz crystal oscillator, a RJ45 connection, a power jack, an ICSP header, and a reset button.
 Pins 10, 11, 12 and 13 are reserved for interfacing with the Ethernet module and should not be used otherwise. This reduces the number of available pins to 9, with 4 available as PWM outputs.
 
