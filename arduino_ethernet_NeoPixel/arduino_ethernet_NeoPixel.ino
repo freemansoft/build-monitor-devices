@@ -30,14 +30,14 @@
 // 
 //  I had code in that logged via serial port but burned too much memory.
 //
-//  Host API form post can post any number of form elements in a single ost with the following conventions
+//  API: Form POST can post any number of form elements in a single ost with the following conventions
 //    r=<value>  set all RED LEDs to this value
 //    g=<value>  set all GREEN LEDs to this value
 //    b=<value>  set all BLUDE LEDs to this value
 //    r#=<value> set RED LED number '#' to this value
 //    g#=<value> set GREEN LED number '#' to this value
 //    b#=<value> set BLUE LED number '#' to this value
-//    s#=<value> set Nokia 5100 LCD text on line # to this value
+//    s#=<value> set Nokia 5100 LCD text on line # to this value. Rows start as 0
 //    c=<value>  clear Nokia 5100 LCD value is ignored
 
 #include <SPI.h>
@@ -148,10 +148,10 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
         nameNumber = &name[1];
         int row = atoi(nameNumber);
         // blank the row 
-        display.setCursor(0,row);
+        display.setCursor(0,row*8);
         display.print("            ");  // bug: quick hard coded hack that knows screen width
         // then draw the row
-        display.setCursor(0,row);
+        display.setCursor(0,row*8);
         display.print(value);      
         display.display();          
       } else {

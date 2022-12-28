@@ -4,7 +4,9 @@ use LWP;
 use Time::HiRes; qw(usleep);
 
 $ua = LWP::UserAgent->new;
+# Bonjour no longer enabled 2022/12
 #the Bonjour name we gave it in the arduino code
+# this no longer works 2022/12
 $url = 'http://arduino_led.local/';
 $num_leds = 30;
 # blank the lights using the "all led" command
