@@ -106,8 +106,6 @@ typedef struct
 // should these be 8x5 intead of linear 40 ?
 volatile pixelDefinition lightStatus[NUM_PIXELS];
 
-// don't have space for the adafruit LCD libraries
-
 /* 
  * this command is set as the default command for the server.  It
  * handles both GET and POST requests.  For a GET, it returns a simple
