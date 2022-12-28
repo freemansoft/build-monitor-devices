@@ -1,3 +1,4 @@
+# Arduino Ethernet with 8x5 AdaFruit NeoPixel Shield and 5110/PCD8544 LCD
 See the Readme.md at the top of this repo for more information about this project.
 
 Blog articles on the hardware for these devices may be available at http://joe.blog.freemansoft.com/
