@@ -7,7 +7,7 @@ Blog articles on the hardware for these devices may be available at http://joe.b
 This source code located at https://github.com/freemansoft/build-monitor-devices
 This code was tested with Arduino Ethernet https://docs.arduino.cc/retired/boards/arduino-ethernet-rev3-without-poe
 
-# Install Dependencies
+# Dependencies
 
 ## Install these libraries in the library manager
 1. Adafruit Neopixel by Adafruit
@@ -15,6 +15,9 @@ This code was tested with Arduino Ethernet https://docs.arduino.cc/retired/board
 
 ## Install these dependencies from GitHub
 1. Download this repo https://github.com/sirleech/Webduino and put it in the `~/Documents/Arduino/libraries` or wherver the libraries are on your development environment.
+
+## JQuery
+Jquery resources are fetched from the jQuery web site.  You can find all the permutations of jQuery on https://releases.jquery.com/
 
 # Usage
 Post Form Data.  The form fields are as follows
@@ -38,8 +41,6 @@ This code extracted from test.py
 myobj = {"r": "0", "g": "0", "b": "0"}
 response = requests.post(url, data=myobj)
 ```
-
-
 
 # Troubleshooting
 1. The Ethernet IP address of the web server is displayed on the Nokia 5110
