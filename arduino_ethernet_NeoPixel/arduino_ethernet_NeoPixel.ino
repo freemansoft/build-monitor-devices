@@ -110,7 +110,7 @@ volatile pixelDefinition lightStatus[NUM_PIXELS];
  * this command is set as the default command for the server.  It
  * handles both GET and POST requests.  For a GET, it returns a simple
  * page with some buttons.  For a POST, it saves the value posted to
- * the red/green/blue variable, affecting the output of the speaker 
+ * the red/green/blue variable, and then sends array to the NeoPixel
  *
  * this has to go before startup because it is referenced
  */
@@ -119,8 +119,8 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
   if (type == WebServer::POST)
   {
     bool repeat;
-    char name[5];     // we shortened all our post variable names to 3 digits including the LED #
-    char  value[36];
+    char name[5];     // shortened all our post variable names to 3 digits including the LED #
+    char value[33];   // maximum LCD string is 32 characters plus \0
     char * nameNumber;
     bool hadError = false;
     do
@@ -129,23 +129,25 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
        * to read from the input.  We pass in buffers for it to store
        * the name and value strings along with the length of those
        * buffers. */
-      repeat = server.readPOSTparam(name, 6, value, 32);
+      repeat = server.readPOSTparam(name, 5, value, 33);
 
 
-      /* strcmp is a standard string comparison function.  It returns 0
-       * when there's an exact match.  We're looking for a parameter
-       * named "r", "g" or "b" here.  The character comparison saved 40 bytes
+      /* We're looking for a parameter named "r", "g" or "b" here.  
+       * The character comparison saved 40 bytes
        *
        * These must exactly match the javascript post variable names
        */
       /* use the Ascii to Int function to turn the string
-       * version of the color strength value into our unsigned char red/green/blue
-       * variable 
+       *  color strength value into our unsigned char red/green/blue variable 
+       * 
+       * Non integer value behavior will cause problems
        */
       if (name[0] == 'c'){
+        // clear display
         display.clearDisplay();
         display.display();
       } else if (name[0]=='s' && name[1] != '\0'){
+        // figure out the row the text goes on
         nameNumber = &name[1];
         int row = atoi(nameNumber);
         // blank the row 
@@ -156,8 +158,12 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
         display.print(value);      
         display.display();          
       } else {
-        // this exists to support the sliders in the web interface
-        // just modify all LEDs at once
+        // RGB control section
+
+        // support the sliders in the web interface
+        // support the 'r' 'g' 'b' comands without LED numbers
+        // modify all LEDs at once
+        // assumes using utf-8 or ASCII
         uint8_t valueMasked = atoi(value) & 0xff;;
         if (name[1] == '\0'){
           for (int i = 0; i < NUM_PIXELS; i ++){
@@ -220,23 +226,23 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
         "<link href='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/themes/base/jquery-ui.css' rel=stylesheet />"
         "<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js'></script>"
         "<script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js'></script>\n"
-        "<style> body { background: black; } #r, #g, #b { margin: 10px; } #r { background: #f00; } #g { background: #0f0; } #b { background: #00f; } </style>\n"
+        "<style> body { background: black; } #r, #g, #b { margin: 10px; } #r { background: #f00; } #g { background: #0f0; } #b { background: #00f; } #text { color: white;}</style>\n"
         "<script>"
       
       // the post path must match the URL above  '/' becomes '/' or whatever
+
       // change color on mouse up, not while sliding (causes much less traffic to the Arduino):
-          "function changeRGB(event, ui) { var id = $(this).attr('id'); if (id == 'r') $.post('/', { r: ui.value } ); if (id == 'g') $.post('/', { g: ui.value } ); if (id == 'b') $.post('/', { b: ui.value } ); } "
-          "$(document).ready(function(){ $('#r, #g, #b').slider({min: 0, max:255, change:changeRGB}); });"
-      
-      // the post path must match the URL above  '/' becomes '/' or whatever
-      // change color on slide and mouse up (causes more traffic to the Arduino) but wait 110 before reading:
-      // not to DDoS the Arduino, you might have to change the timeout to some threshold value that fits your setup
-      //    "function changeRGB(event, ui) { jQuery.ajaxSetup({timeout: 110});  var id = $(this).attr('id'); if (id == 'r') $.post('/', { r: ui.value } ); if (id == 'g') $.post('/', { g: ui.value } ); if (id == 'b') $.post('/', { b: ui.value } ); } "
-      //    "$(document).ready(function(){ $('#r, #g, #b').slider({min: 0, max:255, change:changeRGB, slide:changeRGB}); });"
+      "function changeRGB(event, ui) { var id = $(this).attr('id'); if (id == 'r') $.post('/', { r: ui.value } ); if (id == 'g') $.post('/', { g: ui.value } ); if (id == 'b') $.post('/', { b: ui.value } ); } "
+      "$(document).ready(function(){ $('#r, #g, #b').slider({min: 0, max:255, change:changeRGB}); });"      
+      // change color on slide and mouse up (causes more traffic to the Arduino) 
+      // wait 100msec before reading to reduce traffic Arduino, you might have to change the timeout to some threshold value that fits your setup
+      // "function changeRGB(event, ui) { jQuery.ajaxSetup({timeout: 100});  var id = $(this).attr('id'); if (id == 'r') $.post('/', { r: ui.value } ); if (id == 'g') $.post('/', { g: ui.value } ); if (id == 'b') $.post('/', { b: ui.value } ); } "
+      // "$(document).ready(function(){ $('#r, #g, #b').slider({min: 0, max:255, change:changeRGB, slide:changeRGB}); });"
       
         "</script>\n"
       "</head>\n"
       "<body>"
+        "<div id=text>Color changes on mouse-up</div>"
         "<div id=r></div>"
         "<div id=g></div>"
         "<div id=b></div>"
