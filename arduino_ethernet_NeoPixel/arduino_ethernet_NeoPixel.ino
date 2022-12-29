@@ -28,7 +28,7 @@
 //
 //  The web user interface demonstrates the POST API for this service.
 // 
-//  I had code in that logged via serial port but burned too much memory.
+//  I had code in that logged via serial port but burned too much memory. (428 free vs 248 free ~ 180 bytes )
 //
 //  API: Form POST can post any number of form elements in a single ost with the following conventions
 //    r=<value>  set all RED LEDs to this value
@@ -73,10 +73,10 @@ Adafruit_PCD8544 display = Adafruit_PCD8544(3,4,5,8,7);
 byte mac[] = { 0x46, 0x52, 0x45, 0x8B, 0x4B, 0xED};
 // shortened the name to 12 characters so it fits on the 5110 LCD.  
 // This is the same value in dhcp.h because it is hardcoded there
-#define HOST_NAME "arduino"
+#define HOST_NAME F("arduino")
 // This should be the host name in theory but it doesn't seem to work on my local network
-#define DNS_NAME "arduino_8b4bed"
-#define MDNS_SERVICE "arduino_8b4bed._http"
+// #define DNS_NAME "arduino_8b4bed"
+// #define MDNS_SERVICE "arduino_8b4bed._http"
 
 // webduino on top of web server on port 80
 // this prefix MUST match the URL in the embedded javascript
@@ -150,7 +150,7 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
         int row = atoi(nameNumber);
         // blank the row 
         display.setCursor(0,row*8);
-        display.print("            ");  // bug: quick hard coded hack that knows screen width
+        display.print(F("            "));  // bug: quick hard coded hack that knows screen width
         // then draw the row
         display.setCursor(0,row*8);
         display.print(value);      
@@ -271,17 +271,17 @@ void setup()
 
   display.clearDisplay();
   display.setCursor(0,0);
-  display.println("Host Name");
+  display.println(F("Host Name"));
   display.setCursor(0,1*8);
   display.println(HOST_NAME);
   display.setCursor(0,3*8);
-  display.println("Arduino IP");
+  display.println(F("Arduino IP"));
   display.setCursor(0,4*8);
   
   char buf[4];
   for (byte thisByte = 0; thisByte < 4; thisByte++) {
     if (thisByte != 0){
-      display.print(".");
+      display.print(F("."));
       //Serial.print(".");
     }
     // print the value of each byte of the IP address:
