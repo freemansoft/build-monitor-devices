@@ -223,9 +223,9 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
     P(message) = 
       "<!DOCTYPE html><html><head>\n"
         "<title>Arduino LED</title>\n"
-        "<link  href='https://code.jquery.com/ui/1.8.24/themes/base/jquery-ui.css' rel=stylesheet />"
-        "<script src='https://code.jquery.com/jquery-1.12.4.min.js' integrity='sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=' crossorigin='anonymous'></script>"
-        "<script src='https://code.jquery.com/ui/1.8.24/jquery-ui.min.js' integrity='sha256-UOoxwEUqhp5BSFFwqzyo2Qp4JLmYYPTHB8l+1yhZij8=' crossorigin='anonymous'></script>"
+        "<link  href='https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css' rel=stylesheet />"
+        "<script src='https://code.jquery.com/jquery-2.2.4.min.js' integrity='sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=' crossorigin='anonymous'></script>"
+        "<script src='https://code.jquery.com/ui/1.13.2/jquery-ui.min.js' integrity='sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=' crossorigin='anonymous'></script>"
 
         "<style> body { background: black; } #r, #g, #b { margin: 10px; } #r { background: #f00; } #g { background: #0f0; } #b { background: #00f; } #text { color: white;}</style>\n"
         "<script>"
@@ -235,6 +235,7 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
       // change color on mouse up, not while sliding (causes much less traffic to the Arduino):
       "function changeRGB(event, ui) { var id = $(this).attr('id'); if (id == 'r') $.post('/', { r: ui.value } ); if (id == 'g') $.post('/', { g: ui.value } ); if (id == 'b') $.post('/', { b: ui.value } ); } "
       "$(document).ready(function(){ $('#r, #g, #b').slider({min: 0, max:255, change:changeRGB}); });"      
+      // TODO: This may be broken after jquery upgrades
       // change color on slide and mouse up (causes more traffic to the Arduino) 
       // wait 100msec before reading to reduce traffic Arduino, you might have to change the timeout to some threshold value that fits your setup
       // "function changeRGB(event, ui) { jQuery.ajaxSetup({timeout: 100});  var id = $(this).attr('id'); if (id == 'r') $.post('/', { r: ui.value } ); if (id == 'g') $.post('/', { g: ui.value } ); if (id == 'b') $.post('/', { b: ui.value } ); } "
