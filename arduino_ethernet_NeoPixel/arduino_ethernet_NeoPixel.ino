@@ -223,9 +223,10 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
     P(message) = 
       "<!DOCTYPE html><html><head>\n"
         "<title>Arduino LED</title>\n"
-        "<link href='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/themes/base/jquery-ui.css' rel=stylesheet />"
-        "<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js'></script>"
-        "<script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.min.js'></script>\n"
+        "<link  href='https://code.jquery.com/ui/1.8.24/themes/base/jquery-ui.css' rel=stylesheet />"
+        "<script src='https://code.jquery.com/jquery-1.12.4.min.js' integrity='sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=' crossorigin='anonymous'></script>"
+        "<script src='https://code.jquery.com/ui/1.8.24/jquery-ui.min.js' integrity='sha256-UOoxwEUqhp5BSFFwqzyo2Qp4JLmYYPTHB8l+1yhZij8=' crossorigin='anonymous'></script>"
+
         "<style> body { background: black; } #r, #g, #b { margin: 10px; } #r { background: #f00; } #g { background: #0f0; } #b { background: #00f; } #text { color: white;}</style>\n"
         "<script>"
       
