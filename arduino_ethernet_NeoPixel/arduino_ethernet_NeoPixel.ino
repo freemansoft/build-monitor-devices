@@ -72,8 +72,10 @@ Adafruit_PCD8544 lcdDisplay = Adafruit_PCD8544(3, 4, 5, 8, 7);
 #define PCD8544_LINE_HEIGHT 9
 // 5 + a blank line of pixels
 #define PCD8544_LINE_CHAR_WIDTH 6
-// LCDWIDTH / PCD8544_LINE_CHAR_WIDTH --> 84/6 = 12 characters
-#define PCD8544_BLANK_LINE F("            ")
+// Adafruit_PCD8544.LCDWIDTH / PCD8544_LINE_CHAR_WIDTH --> 84/6 = 14 characters
+// Adafruit_PCD8544.LCDHEIGHT / PCD8544_LINE_height --> 48/9 = 5 lines
+
+#define PCD8544_BLANK_LINE F("              ")
 
 // mac address make something up. odds of collision on your network are low
 byte mac[] = {0x46, 0x52, 0x45, 0x8B, 0x4B, 0xED};
