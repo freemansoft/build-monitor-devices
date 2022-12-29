@@ -68,8 +68,12 @@ EthernetUDP udp;
 Adafruit_PCD8544 lcdDisplay = Adafruit_PCD8544(3, 4, 5, 8, 7);
 // Every lcdDisplay seems to be different :-()
 #define PCD8544_CONTRAST 60
-// multiplying this didn't work
-#define PCD8544_LINE_HEIGHT 8
+// 8 pixel high plus blank line
+#define PCD8544_LINE_HEIGHT 9
+// 5 + a blank line of pixels
+#define PCD8544_LINE_CHAR_WIDTH 6
+// LCDWIDTH / PCD8544_LINE_CHAR_WIDTH --> 84/6 = 12 characters
+#define PCD8544_BLANK_LINE F("            ")
 
 // mac address make something up. odds of collision on your network are low
 byte mac[] = {0x46, 0x52, 0x45, 0x8B, 0x4B, 0xED};
@@ -155,10 +159,10 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
         nameNumber = &name[1];
         int row = atoi(nameNumber);
         // blank the row
-        lcdDisplay.setCursor(0, row * 8);
-        lcdDisplay.print(F("              ")); // bug: quick hard coded hack that knows screen width
+        lcdDisplay.setCursor(0, row * PCD8544_LINE_HEIGHT);
+        lcdDisplay.print(PCD8544_BLANK_LINE);
         // then draw the row
-        lcdDisplay.setCursor(0, row * 8);
+        lcdDisplay.setCursor(0, row * PCD8544_LINE_HEIGHT);
         lcdDisplay.print(value);
         lcdDisplay.display();
       }
@@ -285,7 +289,7 @@ void stripCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
 
 void setup()
 {
-  // Serial.begin(9600);
+  //Serial.begin(9600);
 
   strip.begin();
   initializeStartupColors();
@@ -309,11 +313,11 @@ void setup()
   lcdDisplay.clearDisplay();
   lcdDisplay.setCursor(0, 0);
   lcdDisplay.println(F("Host Name"));
-  lcdDisplay.setCursor(0, 1 * 8);
+  lcdDisplay.setCursor(0, 1 * PCD8544_LINE_HEIGHT);
   lcdDisplay.println(HOST_NAME);
-  lcdDisplay.setCursor(0, 3 * 8);
+  lcdDisplay.setCursor(0, 3 * PCD8544_LINE_HEIGHT);
   lcdDisplay.println(F("Listening on"));
-  lcdDisplay.setCursor(0, 4 * 8);
+  lcdDisplay.setCursor(0, 4 * PCD8544_LINE_HEIGHT);
 
   char buf[4];
   for (byte thisByte = 0; thisByte < 4; thisByte++)
